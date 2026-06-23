@@ -6,6 +6,7 @@
   <meta name="apple-mobile-web-app-capable" content="yes" />
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
   <meta name="mobile-web-app-capable" content="yes" />
+  <meta name="theme-color" content="#1a1c22" />
   <title>Hansefit Check-In</title>
   <style>
     * { margin: 0; padding: 0; box-sizing: border-box; }
@@ -542,6 +543,14 @@
   document.getElementById('editModal').addEventListener('click', function(e) {
     if (e.target === this) closeModal();
   });
+
+  // ─── Force fullscreen on Android on first tap ────
+  document.addEventListener('click', function tryFullscreen() {
+    const el = document.documentElement;
+    const req = el.requestFullscreen || el.webkitRequestFullscreen || el.mozRequestFullScreen || el.msRequestFullscreen;
+    if (req) req.call(el).catch(() => {});
+    document.removeEventListener('click', tryFullscreen);
+  }, { once: true });
 </script>
 </body>
 </html>
