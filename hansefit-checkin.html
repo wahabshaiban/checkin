@@ -1,0 +1,547 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
+  <meta name="apple-mobile-web-app-capable" content="yes" />
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+  <meta name="mobile-web-app-capable" content="yes" />
+  <title>Hansefit Check-In</title>
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+
+    :root {
+      --bg: #1a1c22;
+      --card: #23262f;
+      --card2: #1e2028;
+      --border: #2e3140;
+      --teal: #7ecfc0;
+      --teal-bg: #b8ede4;
+      --blue-btn: #4a7cf7;
+      --text: #ffffff;
+      --subtext: #9ca3af;
+      --hansefit-blue: #1a4fbb;
+    }
+
+    html, body {
+      height: 100%;
+      background: var(--bg);
+      color: var(--text);
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+      overflow-x: hidden;
+    }
+
+    body {
+      display: flex;
+      flex-direction: column;
+      min-height: 100vh;
+      padding-bottom: env(safe-area-inset-bottom);
+    }
+
+    /* ─── EDIT MODAL ─────────────────────────────── */
+    #editModal {
+      display: none;
+      position: fixed;
+      inset: 0;
+      background: rgba(0,0,0,.7);
+      z-index: 1000;
+      align-items: center;
+      justify-content: center;
+      padding: 24px;
+    }
+    #editModal.open { display: flex; }
+    .modal-box {
+      background: var(--card);
+      border-radius: 16px;
+      padding: 24px;
+      width: 100%;
+      max-width: 380px;
+    }
+    .modal-box h3 {
+      font-size: 18px;
+      font-weight: 700;
+      margin-bottom: 20px;
+    }
+    .modal-box label {
+      display: block;
+      font-size: 12px;
+      color: var(--subtext);
+      text-transform: uppercase;
+      letter-spacing: .5px;
+      margin-bottom: 6px;
+      margin-top: 16px;
+    }
+    .modal-box label:first-of-type { margin-top: 0; }
+    .modal-box input[type="text"] {
+      width: 100%;
+      background: var(--bg);
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      color: var(--text);
+      font-size: 15px;
+      padding: 10px 12px;
+      outline: none;
+    }
+    .modal-box input[type="text"]:focus { border-color: var(--blue-btn); }
+
+    .photo-row {
+      display: flex;
+      align-items: center;
+      gap: 14px;
+      margin-top: 4px;
+    }
+    .photo-preview {
+      width: 60px; height: 60px;
+      border-radius: 50%;
+      object-fit: cover;
+      border: 2px solid var(--border);
+      background: var(--bg);
+    }
+    .photo-btn {
+      flex: 1;
+      background: var(--bg);
+      border: 1px dashed var(--border);
+      color: var(--subtext);
+      border-radius: 8px;
+      padding: 10px;
+      font-size: 13px;
+      cursor: pointer;
+      text-align: center;
+    }
+    #fileInput { display: none; }
+
+    .modal-actions {
+      display: flex;
+      gap: 10px;
+      margin-top: 24px;
+    }
+    .modal-actions button {
+      flex: 1;
+      padding: 12px;
+      border-radius: 10px;
+      border: none;
+      font-size: 15px;
+      font-weight: 600;
+      cursor: pointer;
+    }
+    .btn-cancel { background: var(--border); color: var(--subtext); }
+    .btn-save   { background: var(--blue-btn); color: #fff; }
+
+    /* ─── MAIN LAYOUT ────────────────────────────── */
+    .scroll-area {
+      flex: 1;
+      overflow-y: auto;
+      padding: 48px 20px 20px;
+    }
+
+    .page-title {
+      font-size: 22px;
+      font-weight: 800;
+      letter-spacing: .5px;
+      margin-bottom: 6px;
+    }
+    .page-sub {
+      font-size: 14px;
+      color: var(--subtext);
+      margin-bottom: 22px;
+      line-height: 1.5;
+    }
+
+    /* ─── MAIN CARD ──────────────────────────────── */
+    .main-card {
+      border-radius: 14px;
+      overflow: hidden;
+      border: 1px solid var(--border);
+      margin-bottom: 16px;
+    }
+
+    /* Brand header */
+    .brand-bar {
+      background: #fff;
+      padding: 10px 14px;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+    .brand-icon {
+      width: 32px; height: 32px;
+      background: var(--hansefit-blue);
+      border-radius: 6px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 16px;
+      font-weight: 900;
+      color: #fff;
+      flex-shrink: 0;
+    }
+    .brand-name {
+      font-size: 18px;
+      font-weight: 800;
+      color: #111;
+      letter-spacing: 1px;
+      font-style: italic;
+    }
+
+    /* Success banner */
+    .success-banner {
+      background: var(--teal-bg);
+      padding: 13px 16px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 10px;
+    }
+    .success-banner span {
+      font-size: 15px;
+      font-weight: 700;
+      color: #1a3a36;
+      letter-spacing: 1.5px;
+      text-transform: uppercase;
+    }
+    .check-icon {
+      width: 22px; height: 22px;
+      border: 2.5px solid #1a3a36;
+      border-radius: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 12px;
+      color: #1a3a36;
+      font-weight: 900;
+    }
+
+    /* Profile row */
+    .profile-row {
+      background: var(--card2);
+      padding: 18px 16px;
+      display: flex;
+      align-items: center;
+      gap: 16px;
+    }
+    .avatar-wrap {
+      position: relative;
+      width: 76px; height: 76px;
+      flex-shrink: 0;
+    }
+    .avatar-wrap img {
+      width: 76px; height: 76px;
+      border-radius: 50%;
+      object-fit: cover;
+      border: 2.5px solid #3a3d4d;
+      display: block;
+    }
+    .profile-name {
+      font-size: 20px;
+      font-weight: 700;
+      line-height: 1.25;
+    }
+    .badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      background: #1a1f38;
+      border: 1.5px solid #2a3060;
+      border-radius: 20px;
+      padding: 4px 10px;
+      margin-top: 8px;
+    }
+    .badge-dot {
+      width: 18px; height: 18px;
+      background: #1a4fbb;
+      border-radius: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 9px;
+      font-weight: 900;
+      color: #fff;
+    }
+    .badge span { font-size: 13px; font-weight: 600; color: #ccc; }
+
+    /* Place name */
+    .place-row {
+      background: var(--card2);
+      border-top: 1px solid var(--border);
+      padding: 16px;
+      text-align: center;
+    }
+    .place-name {
+      font-size: 16px;
+      font-weight: 800;
+      letter-spacing: .5px;
+      line-height: 1.3;
+    }
+
+    /* Info rows */
+    .info-row {
+      background: var(--card2);
+      border-top: 1px solid var(--border);
+      padding: 14px 16px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+    }
+    .info-label { font-size: 14px; color: var(--subtext); }
+    .info-val   { font-size: 16px; font-weight: 700; font-variant-numeric: tabular-nums; }
+
+    /* ─── BOTTOM NOTE ────────────────────────────── */
+    .bottom-note {
+      text-align: center;
+      color: var(--subtext);
+      font-size: 13px;
+      line-height: 1.5;
+      margin: 0 4px 16px;
+    }
+
+    /* ─── CHECK-OUT BTN ──────────────────────────── */
+    .checkout-btn {
+      width: 100%;
+      background: var(--blue-btn);
+      color: #fff;
+      border: none;
+      border-radius: 14px;
+      padding: 18px;
+      font-size: 16px;
+      font-weight: 700;
+      letter-spacing: 1px;
+      text-transform: uppercase;
+      cursor: pointer;
+      margin-bottom: 24px;
+    }
+
+    /* ─── BOTTOM NAV ─────────────────────────────── */
+    .bottom-nav {
+      background: #16181f;
+      border-top: 1px solid var(--border);
+      display: flex;
+      padding: 10px 0 calc(10px + env(safe-area-inset-bottom));
+    }
+    .nav-item {
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 4px;
+      cursor: pointer;
+      opacity: .45;
+      transition: opacity .2s;
+    }
+    .nav-item.active { opacity: 1; color: var(--blue-btn); }
+    .nav-item svg { width: 22px; height: 22px; }
+    .nav-item span { font-size: 10px; font-weight: 600; letter-spacing: .3px; text-transform: uppercase; }
+    .nav-item.active span { color: var(--blue-btn); }
+
+    /* edit fab */
+    .edit-fab {
+      position: fixed;
+      top: 14px;
+      right: 16px;
+      background: var(--card);
+      border: 1px solid var(--border);
+      color: var(--subtext);
+      border-radius: 50%;
+      width: 40px; height: 40px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      cursor: pointer;
+      z-index: 100;
+      font-size: 17px;
+    }
+  </style>
+</head>
+<body>
+
+<!-- Edit FAB -->
+<button class="edit-fab" onclick="openModal()" title="Edit details">✏️</button>
+
+<!-- Edit Modal -->
+<div id="editModal">
+  <div class="modal-box">
+    <h3>Edit Details</h3>
+
+    <label>First Name</label>
+    <input type="text" id="inp-first" value="hamoud" />
+
+    <label>Last Name</label>
+    <input type="text" id="inp-last" value="azzam" />
+
+    <label>Venue Name</label>
+    <input type="text" id="inp-venue" value="BÄDERLAND BARTHOLOMÄUSTHERME (SAUNA)" />
+
+    <label>Profile Photo</label>
+    <div class="photo-row">
+      <img class="photo-preview" id="photoPreview" src="" alt="preview" />
+      <div class="photo-btn" onclick="document.getElementById('fileInput').click()">Tap to choose photo</div>
+      <input type="file" id="fileInput" accept="image/*" onchange="handlePhoto(event)" />
+    </div>
+
+    <div class="modal-actions">
+      <button class="btn-cancel" onclick="closeModal()">Cancel</button>
+      <button class="btn-save"   onclick="saveEdits()">Save</button>
+    </div>
+  </div>
+</div>
+
+<!-- Scrollable content -->
+<div class="scroll-area">
+  <p class="page-title">CHECK-IN</p>
+  <p class="page-sub">Please show this screen to the studio staff to exercise.</p>
+
+  <div class="main-card">
+    <!-- Brand -->
+    <div class="brand-bar">
+      <div class="brand-icon">H</div>
+      <span class="brand-name">HANSEFIT</span>
+    </div>
+
+    <!-- Success -->
+    <div class="success-banner">
+      <span>CHECK-IN SUCCESSFUL</span>
+      <div class="check-icon">✓</div>
+    </div>
+
+    <!-- Profile -->
+    <div class="profile-row">
+      <div class="avatar-wrap">
+        <img id="avatarImg" src="" alt="Profile" />
+      </div>
+      <div>
+        <div class="profile-name" id="displayName">hamoud<br>azzam</div>
+        <div class="badge">
+          <div class="badge-dot">H</div>
+          <span>Best</span>
+        </div>
+      </div>
+    </div>
+
+    <!-- Venue -->
+    <div class="place-row">
+      <div class="place-name" id="displayVenue">BÄDERLAND BARTHOLOMÄUSTHERME (SAUNA)</div>
+    </div>
+
+    <!-- Timer -->
+    <div class="info-row">
+      <span class="info-label">Checked in since</span>
+      <span class="info-val" id="timer">00:00:00</span>
+    </div>
+
+    <!-- Date -->
+    <div class="info-row">
+      <span class="info-label">Checked in on</span>
+      <span class="info-val" id="checkinDate">—</span>
+    </div>
+  </div>
+
+  <p class="bottom-note">Make sure to check out when you have finished your training.</p>
+
+  <button class="checkout-btn">CHECK-OUT</button>
+</div>
+
+<!-- Bottom Nav -->
+<nav class="bottom-nav">
+  <div class="nav-item">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><circle cx="12" cy="10" r="4"/><path d="M12 2C7.03 2 3 6.03 3 11c0 6 9 13 9 13s9-7 9-13c0-4.97-4.03-9-9-9z"/></svg>
+    <span>Studios</span>
+  </div>
+  <div class="nav-item">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><rect x="3" y="4" width="18" height="17" rx="2"/><path d="M16 2v4M8 2v4M3 10h18"/></svg>
+    <span>Courses</span>
+  </div>
+  <div class="nav-item active">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><rect x="3" y="3" width="18" height="18" rx="3"/><rect x="7" y="7" width="10" height="10" rx="1.5" fill="currentColor" stroke="none"/></svg>
+    <span>Check-In</span>
+  </div>
+  <div class="nav-item">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><circle cx="12" cy="12" r="9"/><path d="M12 8v4m0 4h.01"/></svg>
+    <span>Online+</span>
+  </div>
+  <div class="nav-item">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><circle cx="12" cy="8" r="4"/><path d="M4 20c0-4 3.6-7 8-7s8 3 8 7"/></svg>
+    <span>Profile</span>
+  </div>
+</nav>
+
+<script>
+  // ─── State ──────────────────────────────────────
+  let photoDataUrl = '';
+  let checkInTime = Date.now();
+
+  // ─── Date display ───────────────────────────────
+  function formatDate(d) {
+    const dd = String(d.getDate()).padStart(2,'0');
+    const mm = String(d.getMonth()+1).padStart(2,'0');
+    const yyyy = d.getFullYear();
+    return `${dd}.${mm}.${yyyy}`;
+  }
+  document.getElementById('checkinDate').textContent = formatDate(new Date());
+
+  // ─── Live timer ─────────────────────────────────
+  function updateTimer() {
+    const elapsed = Math.floor((Date.now() - checkInTime) / 1000);
+    const h = Math.floor(elapsed / 3600);
+    const m = Math.floor((elapsed % 3600) / 60);
+    const s = elapsed % 60;
+    document.getElementById('timer').textContent =
+      String(h).padStart(2,'0') + ':' +
+      String(m).padStart(2,'0') + ':' +
+      String(s).padStart(2,'0');
+  }
+  setInterval(updateTimer, 1000);
+  updateTimer();
+
+  // ─── Default placeholder avatar ─────────────────
+  function initAvatar() {
+    const canvas = document.createElement('canvas');
+    canvas.width = canvas.height = 150;
+    const ctx = canvas.getContext('2d');
+    ctx.fillStyle = '#2e3140';
+    ctx.beginPath(); ctx.arc(75,75,75,0,Math.PI*2); ctx.fill();
+    ctx.fillStyle = '#6b7280';
+    ctx.beginPath(); ctx.arc(75,58,28,0,Math.PI*2); ctx.fill();
+    ctx.beginPath(); ctx.arc(75,110,38,0,Math.PI*2); ctx.fill();
+    photoDataUrl = canvas.toDataURL();
+    document.getElementById('avatarImg').src = photoDataUrl;
+    document.getElementById('photoPreview').src = photoDataUrl;
+  }
+  initAvatar();
+
+  // ─── Modal ──────────────────────────────────────
+  function openModal() {
+    document.getElementById('inp-first').value = document.getElementById('displayName').innerHTML.split('<br>')[0];
+    document.getElementById('inp-last').value  = document.getElementById('displayName').innerHTML.split('<br>')[1];
+    document.getElementById('inp-venue').value = document.getElementById('displayVenue').textContent;
+    document.getElementById('photoPreview').src = document.getElementById('avatarImg').src;
+    document.getElementById('editModal').classList.add('open');
+  }
+  function closeModal() {
+    document.getElementById('editModal').classList.remove('open');
+  }
+  function saveEdits() {
+    const first = document.getElementById('inp-first').value.trim() || 'hamoud';
+    const last  = document.getElementById('inp-last').value.trim()  || 'azzam';
+    const venue = document.getElementById('inp-venue').value.trim() || 'VENUE NAME';
+    document.getElementById('displayName').innerHTML = first + '<br>' + last;
+    document.getElementById('displayVenue').textContent = venue;
+    const preview = document.getElementById('photoPreview').src;
+    if (preview) document.getElementById('avatarImg').src = preview;
+    closeModal();
+  }
+  function handlePhoto(e) {
+    const file = e.target.files[0];
+    if (!file) return;
+    const reader = new FileReader();
+    reader.onload = ev => {
+      document.getElementById('photoPreview').src = ev.target.result;
+    };
+    reader.readAsDataURL(file);
+  }
+
+  // close modal on backdrop click
+  document.getElementById('editModal').addEventListener('click', function(e) {
+    if (e.target === this) closeModal();
+  });
+</script>
+</body>
+</html>
